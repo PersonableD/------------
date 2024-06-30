@@ -1,0 +1,63 @@
+.card-body-edit {
+  display: none;
+}
+* {
+  font-family: "Jua", sans-serif;
+}
+
+.wrap {
+  margin: 30px auto;
+  width: 900px;
+}
+
+.posting-box {
+  width: 600px;
+}
+.lead {
+  float: left;
+  margin-right: 20px;
+}
+
+.btn #icon {
+  color: white;
+  visibility: hidden;
+}
+.btn.active #icon {
+  visibility: visible;
+}
+
+.display-4 {
+  color: transparent;
+  background: black;
+  background-clip: text;
+  -webkit-background-clip: text;
+  transition: background 0.5s ease-in;
+}
+
+.display-4:hover {
+  cursor: pointer;
+
+  background: linear-gradient(
+    to right,
+    #cdfc93,
+    #ff7ecd,
+    #71d7ff,
+    #ce81ff,
+    #fff68b
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-size: 200%;
+  animation: anim 10s linear infinite;
+  -webkit-animation: anim 10s linear infinite;
+}
+
+@keyframes anim {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}

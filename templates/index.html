@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+      integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N"
+      crossorigin="anonymous"
+    />
+    <!-- css불러오기 -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <!-- jQuery and Bootstrap Bundle (includes Popper) -->
+    <!-- jQuery 를 포함합니다. -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://use.fontawesome.com/releases/v6.4.0/js/all.js"
+    ></script>
+    <script>
+      $(document).ready(function () {
+        //DB에 저장된 메모들을 보여준다
+        $("input:radio[name=options]").click(function () {
+          let color_rgb = $(this).parent().css("background-color");
+          let rgb_numbers = color_rgb.match(/\d+/g);
+          let color_hex = rgb_numbers
+            .map((x) => {
+              hexPart = parseInt(x).toString(16);
+              return hexPart.padStart(2, "0");
+            })
+            .join("");
+          hex = "#" + color_hex;
+          return hex;
+        });
+
+        showMemos();
+        // memoRandomColor();
+      });
+      // 수정 창을 여는 함수
+      function show_editMemo() {
+        let focus_id = $(":focus").parent().parent().attr("id");
+
+        $("#" + focus_id + ".card")
+          .children()
+          .first()
+          .hide();
+        $("#" + focus_id + ".card")
+          .children()
+          .eq(1)
+          .show();
+      }
+      //수정된 값을 id 가 일치하는 게시물에 저장하는 함수
+      function save_editMemo() {
+        let myid = $(":focus").parent().parent().attr("id");
+        let edit_title = $("#" + myid + ".card")
+          .find("#new-title")
+          .val();
+        let edit_text = $("#" + myid + ".card")
+          .find("#new-text")
+          .val();
+        $.ajax({
+          type: "POST",
+          url: "/memos/edit",
+          data: {
+            id: myid,
+            editTitle_give: edit_title,
+            editText_give: edit_text,
+          },
+          success: function (response) {
+            alert(response["msg"]);
+            location.reload();
+          },
+        });
+      }
+
+      let hex = "#cdfc93";
+      function select_color() {
+        let color_rgb = $(".active").css("background-color");
+        let rgb_numbers = color_rgb.match(/\d+/g);
+        let color_hex = rgb_numbers
+          .map((x) => {
+            hexPart = parseInt(x).toString(16);
+            return hexPart.padStart(2, "0");
+          })
+          .join("");
+        hex = "#" + color_hex;
+        return hex;
+      }
+
+      //메모를 포스팅하는 함수
+      function postMemo() {
+        let post_title = $("#memo-title").val();
+        let post_content = $("#memo-content").val();
+        $.ajax({
+          type: "POST",
+          url: "/memos",
+          data: {
+            title_give: post_title,
+            content_give: post_content,
+            color_give: hex,
+          },
+          success: function (response) {
+            alert(response["msg"]);
+            location.reload();
+          },
+        });
+      }
+      //포스팅메모의 html을 생성하는 함수
+      function makeCard(id, title, text, likes, time) {
+        let temp_html = `<div id=${id} class="card shadow">
+          <div class="card-body">
+            <p class="card-text"><small class="text-muted">${time}</small></p>
+            <p class="card-title">${title}</p>
+            <p class="card-text">${text}</p>
+            <p class="card-likes">${likes}</p>
+            <a class="edit-button btn btn-primary btn-lg"
+              href="#"
+              role="button"
+              onclick="show_editMemo()"
+              >수정</a
+            >
+            <a class="delete-button btn btn-primary btn-lg"
+              href="#"
+              role="button"
+              onclick="delete_memo()">삭제</a
+            >
+            <a href="#" class="link-like" onclick="return add_like()"
+              >좋아요!<i class="fa-regular fa-thumbs-up"></i
+            ></a>
+          </div>
+          <div class="card-body-edit m-3">
+            <div class="form-group">
+              <input
+                id="new-title"
+                type="email"
+                class="form-control"
+                aria-describedby="emailHelp"
+                placeholder="제목을 입력하세요"
+                value=${title}
+              />
+            </div>
+            <div class="form-group">
+              <textarea
+                id="new-text"
+                class="form-control"
+                rows="3"
+                placeholder="내용을 입력하세요"
+
+              >${text}</textarea>
+            </div>
+            <a class="save-button btn btn-primary btn-lg"
+              href="#"
+              role="button"
+              onclick="save_editMemo()"
+              >저장</a
+            >
+          </div>
+        </div>`;
+        $("#card-list").append(temp_html);
+      }
+      //포스팅한 메모들을 화면에 보여주는 함수
+      function showMemos() {
+        $("#card-list").empty();
+        $.ajax({
+          type: "GET",
+          url: "/memos",
+          data: {},
+          success: function (response) {
+            let memos = response["memos"];
+            //랜덤으로 돌릴 색상값을 리스트 형식으로 가져옴.
+            let colorArray = [
+              "#cdfc93",
+              "#ff7ecd",
+              "#71d7ff",
+              "#ce81ff",
+              "#fff68b",
+            ];
+
+            for (i = 0; i < memos.length; i++) {
+              makeCard(
+                memos[i]["_id"],
+                memos[i]["title"],
+                memos[i]["text"],
+                memos[i]["likes"],
+                memos[i]["time"]
+              );
+              //card 의 배경색을 colorArray 값으로부터 랜덤으로 받아오는 것 구현.
+              let color = memos[i]["color"];
+              //card-list의 자식 순서를 이용하여 똑같은 태그지만 색상이 태그마다 다르게 선택될 수 있도록 하였음.
+              $("#card-list").children().eq(i).css("background-color", color);
+            }
+
+            if (response["result"] == "success") {
+              console.log(response["msg"]);
+            }
+          },
+        });
+      }
+      //좋아요를 누르면 카운트가 올라가는 함수
+      function add_like() {
+        $.ajax({
+          type: "POST",
+          url: "/memos/like",
+          data: { id: $(":focus").parent().parent().attr("id") },
+          success: function (response) {
+            {
+              console.log(response["msg"]);
+              location.reload();
+            }
+          },
+        });
+      }
+      function delete_memo() {
+        $.ajax({
+          type: "DELETE",
+          url: "/memos/delete",
+          data: { id: $(":focus").parent().parent().attr("id") },
+          success: function (response) {
+            {
+              alert(response["msg"]);
+              location.reload();
+            }
+          },
+        });
+      }
+    </script>
+    <title>크래프톤 정글 | 나홀로 메모장</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Jua&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="jumbotron">
+        <h1 class="display-4">나홀로메모장 VER2.0</h1>
+
+        <div class="posting-box">
+          <div class="form-group">
+            <input
+              id="memo-title"
+              type="text"
+              class="form-control"
+              aria-describedby="emailHelp"
+              placeholder="제목을 입력하세요"
+            />
+          </div>
+          <div class="form-group">
+            <textarea
+              id="memo-content"
+              class="form-control"
+              rows="3"
+              placeholder="내용을 입력하세요"
+            ></textarea>
+          </div>
+        </div>
+        <p class="lead">
+          <a
+            class="btn btn-primary btn-lg"
+            href="#"
+            role="button"
+            type="submit"
+            onclick="postMemo()"
+            >저장하기</a
+          >
+        </p>
+        <div class="btn-group btn-group-toggle shadow-sm" data-toggle="buttons">
+          <label class="btn active" style="background-color: #cdfc93">
+            <input type="radio" name="options" id="option1" checked />
+            <i class="fa-solid fa-check" id="icon"></i>
+          </label>
+          <label class="btn" style="background-color: #ff7ecd">
+            <input type="radio" name="options" id="option2" />
+            <i class="fa-solid fa-check" id="icon"></i>
+          </label>
+          <label class="btn" style="background-color: #71d7ff">
+            <input type="radio" name="options" id="option3" />
+            <i class="fa-solid fa-check" id="icon"></i>
+          </label>
+          <label class="btn" style="background-color: #ce81ff">
+            <input type="radio" name="options" id="option3" />
+            <i class="fa-solid fa-check" id="icon"></i>
+          </label>
+          <label class="btn" style="background-color: #fff68b">
+            <input type="radio" name="options" id="option3" />
+            <i class="fa-solid fa-check" id="icon"></i>
+          </label>
+        </div>
+      </div>
+
+      <div id="card-list" class="card-columns"></div>
+    </div>
+  </body>
+</html>
